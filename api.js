@@ -19,7 +19,7 @@ var session = {
 
 //player object
 var player = {
-    username: '',
+    username: 'OryxGaming_',
     id: null,
     platform: 'uplay',
     kills: null,
@@ -121,8 +121,6 @@ function getPlayerId(sessionObj, playerObj) {
 }
 
 
-
-
 function getPlayerRank(sessionObj, playerObj) {
     var options = {
         host: 'public-ubiservices.ubi.com',
@@ -132,11 +130,11 @@ function getPlayerRank(sessionObj, playerObj) {
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `ubi_v1 t=${sessionObj.token}`,
-            'expiration': null,
-            'Ubi-AppID': sessionObj.appId,
-            'Ubi-SessionID': sessionObj.sessionId,
+            'Ubi-AppId': sessionObj.appId,
+            'Ubi-SessionId': sessionObj.sessionId,
             'User-Agent': 'node.js',
             'Connection': 'keep-alive',
+            'expiration': null,
         }
     }
     return new Promise((resolve, reject) => {
@@ -144,7 +142,7 @@ function getPlayerRank(sessionObj, playerObj) {
             const req = https.request(options, res => {
                 let data = '';
                 res.on('error', e => {
-                    err_call(e);
+                    reject(e);
                 });
 
                 res.on('data', chunk => {
@@ -165,6 +163,7 @@ function getPlayerRank(sessionObj, playerObj) {
     });
 }
 
+
 function getPlayerSummary(sessionObj, playerObj) {
     const authority = `https://r6s-stats.ubisoft.com/v1/current/operators/${playerObj.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200724&endDate=20201121`;
     var options = {
@@ -179,7 +178,6 @@ function getPlayerSummary(sessionObj, playerObj) {
         'user-agent': 'node.js',
         'expiration': genExpiration(sessionObj),
     }
-
     return new Promise((resolve, reject) => {
         try {
             //connect to authority
@@ -216,7 +214,7 @@ function getPlayerSummary(sessionObj, playerObj) {
 }
 
 //error
-function errorCall(e) {
+function err_call(e) {
     console.error(e);
 }
 
@@ -232,6 +230,7 @@ async function fetch(accountObj, sessionObj, playerObj) {
     [session.token, session.sessionId] = await getSessionId(accountObj, sessionObj, playerObj);
     [player.id, player.name] = await getPlayerId(sessionObj, playerObj);
     var x = await getPlayerRank(sessionObj, playerObj);
+    console.log(x);
     var stats_string = await getPlayerSummary(sessionObj, playerObj);
 }
 
