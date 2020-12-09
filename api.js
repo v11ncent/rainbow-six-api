@@ -14,13 +14,10 @@ const http = require('http');
 var email = '';
 var password = '';
 var platform = 'uplay';
-var username = '';
 
-//CLASSES
-//######################################################################################################################################
 
 //ACCOUNT CLASS
-var account = (function() {
+var account = function() {
     //private
     var config;
     function initializeAccount(email, password, platform) {
@@ -34,27 +31,17 @@ var account = (function() {
         createAccount: function(email, password, platform) {
             if (config === undefined) {
                 config = new initializeAccount(email, password, platform);
-                return account;
+                return config;
             }
-        },
-        getAccount: function() {
-            return config;
-        },
-        getEmail: function() {
-            return config.email;
-        },
-        getPassword: function() {
-            return config.password;
         }
     }
-})();
+}();
 
 //SESSION CLASS
 var session = function() {
-    //private methods
+   
     var config;
     function initializeSession() {
-        this.time = new Date();
         this.appId  = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
         this.spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
         this.sessionId = null;
@@ -69,7 +56,7 @@ var session = function() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + Buffer.from(account.getEmail() + ':' + account.getPassword()).toString('base64'),
+                'Authorization': 'Basic ' + Buffer.from(account.email + ':' + account.password).toString('base64'),
                 'Ubi-AppId': config.appId,
                 'Ubi-RequestedPlatformType': 'uplay',
                 'Connection': 'keep-alive',
@@ -80,12 +67,12 @@ var session = function() {
                 const req = https.request(options, res => {
                     let data = '';
                     res.on('error', e => {
-                        err_call(e);
-                    });
+                        throw new Error(e);
+                    })
     
                     res.on('data', chunk => {
                         data += chunk;
-                    });
+                    })
     
                     res.on('end', () => {
                         data = JSON.parse(data);
@@ -105,56 +92,37 @@ var session = function() {
         createSession: async function(accountObj) {
             if (config === undefined) {
                 config = new initializeSession();
-                let data = await getSessionResponse(accountObj);
+                let data = await getSessionResponse(accountObj).catch(e => { console.log(e) });
                 config.sessionId = data.sessionId;
                 config.token = data.ticket;
-                return session;
+                return config;
             }
-        },
-        getSession: function() {
-            return config;
-        },
-        getSessionId: function() {
-            return config.sessionId;
-        },
-        getAppId: function() {
-            return config.appId;
-        },
-        getSpaceId: function() {
-            return config.spaceId;
-        },
-        getTime: function() {
-            return config.time;
-        },
-        getToken: function() {
-            return config.token;
-        },
+        }
     }
 }();
 
 //PLAYER CLASS
-var player = function() {
-    var players = [];
-
+var players = function() {
+    var playersArray = [];
     function initializePlayer(username) {
-        this.username = username,
-        this.id = null,
-        this.rank = null,
-        this.kills = null,
-        this.deaths = null
+        this.username = username;
+        this.id = null;
+        this.rank = null;
+        this.kills = null;
+        this.deaths = null;
     }
     
-    function getPlayerResponse(session) {
+    function getPlayerInfo(player, session) {
         var options = {
             host: 'public-ubiservices.ubi.com',
             port: 443,
-            path: `/v3/profiles?namesOnPlatform=${data.username}&platformType=uplay`,
+            path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=uplay`,
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `ubi_v1 t=${session.getToken()}`,
-                'ubi-appid': session.getAppId(),
-                'ubi-sessionid': session.getSessionId(),
+                'Authorization': `ubi_v1 t=${session.token}`,
+                'Ubi-AppID': session.appId,
+                'Ubi-SessionID': session.sessionId,
                 'Connection': 'keep-alive',
             }
         }
@@ -163,38 +131,39 @@ var player = function() {
                 const req = https.request(options, res => {
                     let data = '';
                     res.on('error', e => {
-                        reject(e);
-                    });
+                        throw new Error(e);
+                    })
     
                     res.on('data', chunk => {
                         data += chunk;
-                    });
+                    })
     
                     res.on('end', () => {
                         data = JSON.parse(data);
+                        player.id = data.profiles[0].profileId;
                         resolve(data);
-                    });
-                });
+                    })
+                })
                 req.end();
             }
             catch (e) {
                 reject(e);
             }
-        });
+        })
     }
 
-    function getPlayerRank(session) {
+    function getPlayerRank(player, session) {
         var options = {
             host: 'public-ubiservices.ubi.com',
             port: 443,
-            path: `/v1/spaces/${session.config.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-1&region_id=ncsa&profile_ids=${player.id}`,
+            path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-1&region_id=ncsa&profile_ids=${player.id}`,
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `ubi_v1 t=${session.config.token}`,
-                'expiration': null,
-                'Ubi-AppID': session.config.appId,
-                'Ubi-SessionID': session.config.sessionId,
+                'Authorization': `ubi_v1 t=${session.token}`,
+                'Expiration': null,
+                'Ubi-AppID': session.appId,
+                'Ubi-SessionID': session.sessionId,
                 'User-Agent': 'node.js',
                 'Connection': 'keep-alive',
             }
@@ -205,49 +174,50 @@ var player = function() {
                     let data = '';
                     res.on('error', e => {
                         reject(e);
-                    });
+                    })
     
                     res.on('data', chunk => {
                         data += chunk;
-                    });
+                    })
     
                     res.on('end', () => {
                         data = JSON.parse(data);
                         resolve(data);
-                    });
-                });
+                    })
+                })
                 req.end();
             }
             catch (e) {
                 reject(e);
             }
-        });
+        })
     }
 
-    function getPlayerSummary(session) {
+    function getPlayerSummary(player, session) {
         var options = {
             ':authority': 'r6s-stats.ubisoft.com',
             ':method': 'GET',
-            ':path': `/v1/current/operators/${data.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200724&endDate=20201121`,
+            //I need to make the startDate & endDate dynamic
+            ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200810&endDate=20201208`,
             ':scheme': 'https',
-            'authorization': `ubi_v1 t=${session.config.token}`,
-            'ubi-appid': session.config.appId,
-            'ubi-sessionid': session.config.sessionId,
+            'authorization': `ubi_v1 t=${session.token}`,
+            'ubi-appid': session.appId,
+            'ubi-sessionid': session.sessionId,
             'content-type': 'application/json',
             'user-agent': 'node.js',
-            'expiration': generateExpiration(session),
+            'expiration': genExpiration(),
         }
 
-        const authority = `https://r6s-stats.ubisoft.com/v1/current/operators/${data.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200724&endDate=20201121`;
+        const authority = `https://r6s-stats.ubisoft.com/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200724&endDate=20201121`;
         return new Promise((resolve, reject) => {
             try {
-                //connect to authority
+                
                 const client = http2.connect(authority);
                 let data = '';
                 client.on('error', e => {
                     reject(e);
-                });
-                //request
+                })
+                
                 const req = client.request(options);
                 req.on('error', e => {
                     reject(e);
@@ -255,62 +225,64 @@ var player = function() {
     
                 req.on('data', chunk => {
                     data += chunk;
-                });
+                })
     
                 req.on('end', () => {
                     data = JSON.parse(data);
                     client.close();
-                    //destructuring
+                    //this is a lot of data at once so do as you will, I commented it out for simplicity
                     //const { teamRoles } = data.platforms.PC.gameModes.ranked;
-                    //console.log(teamRoles);
+                    //resolve(teamRoles);
                     resolve(data);
-                }); 
+                })
                 req.end();
             }
             catch (e) {
                 reject(e);
             }
-        });
+        })
     }
 
-    function generateExpiration(session) {
-        let time = session.config.time.getTime();
-        //10000 ms = 10 seconds
-        let expiration = 600000;
-        console.log(new Date(time + expiration).toISOString());
-        return new Date(time + expiration).toISOString();
+    function genExpiration() {
+        //1 hour expiration for quicker calls
+        let time = new Date();
+        let cacheTime = 1;
+        time.setHours(time.getHours() + cacheTime);
+        let expiration = time.toISOString();
+        return expiration;
     }
 
     //public
     return {
         createPlayer: function(username) {
-            data = new initializePlayer(username);
-            players.push(data);
-            return player;
+            newPlayer = new initializePlayer(username);
+            playersArray.push(newPlayer);
+            return newPlayer;
         },
         getPlayer: function(player) {
-            var found = players.find(players => {
-                players.username === 'OryxGaming_';
-            })
-            return found;
+            for(let i = 0; i < playersArray.length; i++) {
+                if(playersArray[i].username === player) {
+                    return playersArray[i];
+                }
+                else if (i === playersArray.length - 1 && playersArray[i].username != player) {
+                    return new Error('Player not found.');
+                }
+            }
         },
-        getPlayerResponse: getPlayerResponse,
-        setPlayerId: getPlayerResponse,
-        //setPlayerRank: getPlayerRank,
-        //setPlayerSummary: getPlayerSummary,
+        getPlayerInfo: getPlayerInfo,
+        getPlayerRank: getPlayerRank,
+        getPlayerSummary: getPlayerSummary,
     }
 }();
-//######################################################################################################################################
 
 
 var newAccount = account.createAccount(email, password, platform);
-var printAccount = newAccount.getAccount();
-console.log(printAccount);
+
 async function print() {
-    var session1 = await session.createSession(newAccount);
-    var player1 = await player.createPlayer('OryxGaming_');
-    var player2 = await player.createPlayer('OryxGaming131231_')
-    console.log(player1.getPlayer());
-    var playerRes = await player1.getPlayerResponse(session1);
+    var session1 = await session.createSession(newAccount).catch(e => { console.log(e) });
+    let player = players.createPlayer('OryxGaming_');
+    let response = await players.getPlayerInfo(player, session1).catch(e => { console.log(e) });
+    let summary = await players.getPlayerRank(player, session1).catch(e => { console.log(e) });
+    console.log(summary);
 }
 print();
