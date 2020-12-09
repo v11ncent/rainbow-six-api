@@ -1,11 +1,3 @@
-/*resources:
-    on promises:
-        https://softwareengineering.stackexchange.com/questions/279898/how-do-i-make-a-javascript-promise-return-something-other-than-a-promise/279899
-    on classes:
-        //https://www.toptal.com/javascript/comprehensive-guide-javascript-design-patterns#:~:text=Some%20examples%20discussed%20in%20the,pattern%2C%20and%20the%20facade%20pattern
-
-*/
-
 //import
 const http2 = require('http2');
 const https = require('https');
