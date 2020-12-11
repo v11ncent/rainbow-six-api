@@ -1,16 +1,12 @@
-//import
+//imports
 const http2 = require('http2');
 const https = require('https');
-const http = require('http');
 
 var email = '';
 var password = '';
 var platform = 'uplay';
-
-
 //ACCOUNT CLASS
 var account = function() {
-    //private
     var config;
     function initializeAccount(email, password, platform) {
         this.email = email;
@@ -18,7 +14,6 @@ var account = function() {
         this.platform = platform;
     }
 
-    //public
     return {
         createAccount: function(email, password, platform) {
             if (config === undefined) {
@@ -31,7 +26,6 @@ var account = function() {
 
 //SESSION CLASS
 var session = function() {
-   
     var config;
     function initializeSession() {
         this.appId  = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
@@ -79,7 +73,6 @@ var session = function() {
         })
     }
 
-    //public methods
     return {
         createSession: async function(accountObj) {
             if (config === undefined) {
@@ -89,6 +82,10 @@ var session = function() {
                 config.token = data.ticket;
                 return config;
             }
+        },
+        debugSession: async function(accountObj) {
+            let consoleOutput = await getSessionResponse(accountObj);
+            console.log(consoleOutput);
         }
     }
 }();
@@ -244,7 +241,6 @@ var players = function() {
         return expiration;
     }
 
-    //public
     return {
         createPlayer: function(username) {
             newPlayer = new initializePlayer(username);
@@ -267,14 +263,7 @@ var players = function() {
     }
 }();
 
-
-var newAccount = account.createAccount(email, password, platform);
-
-async function print() {
-    var session1 = await session.createSession(newAccount).catch(e => { console.log(e) });
-    let player = players.createPlayer('OryxGaming_');
-    let response = await players.getPlayerInfo(player, session1).catch(e => { console.log(e) });
-    let summary = await players.getPlayerRank(player, session1).catch(e => { console.log(e) });
-    console.log(summary);
-}
-print();
+//exports
+module.exports = account;
+module.exports = session;
+module.exports = players;

@@ -1,15 +1,22 @@
 {
-  "name": "rainbow-bot",
+  "name": "r6-api",
   "version": "1.0.0",
-  "description": "rainbow six bot",
-  "main": "app.js",
+  "description": "An api for fetching player statistics from Ubisoft's Rainbow Six website.",
+  "main": "api.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vince1444/r6-api.git"
+  },
   "author": "vince1444",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vince1444/r6-api/issues"
+  },
+  "homepage": "https://github.com/vince1444/r6-api#readme",
   "dependencies": {
-    "discord.js": "^12.4.1",
-    "got": "^11.8.0"
+    "node": "^15.3.0"
   }
 }
