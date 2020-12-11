@@ -5,6 +5,7 @@ const https = require('https');
 var email = '';
 var password = '';
 var platform = 'uplay';
+
 //ACCOUNT CLASS
 var account = function() {
     var config;
