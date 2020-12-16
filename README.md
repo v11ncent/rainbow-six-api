@@ -1,3 +1,6 @@
+# UPDATE
+No longer works; seasons changed. Will update within the next day or two
+
 # r6-api
 Rainbow Six api for getting player statistics.
 https://github.com/vince1444/r6-api/wiki
