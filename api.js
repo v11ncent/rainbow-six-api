@@ -2,269 +2,368 @@
 const http2 = require('http2');
 const https = require('https');
 
-var email = '';
-var password = '';
-var platform = 'uplay';
+//players array that holds players
+var players = [];
 
-//ACCOUNT CLASS
-var account = function() {
-    var config;
-    function initializeAccount(email, password, platform) {
-        this.email = email;
-        this.password = password;
-        this.platform = platform;
-    }
-
+//creates an account
+function createAccount(email, password, platform) {
     return {
-        createAccount: function(email, password, platform) {
-            if (config === undefined) {
-                config = new initializeAccount(email, password, platform);
-                return config;
-            }
+        email: email,
+        password: password,
+        platform: platform,
+    }
+}
+
+
+//creates a session
+function createSession(account) {
+    //startDate() and endDate() fill the params for the subsequent requests. By default, I made it pull statistics from 2 months.
+    //If you want to change the stat range, just change the months/days values in these functions.
+    function startDate() {
+        let startDate = new Date();
+        //Subtracts 2 months from current date.
+        let months = 2;
+        startDate.setMonth(startDate.getMonth() - months);
+        startDate = startDate.toISOString().split('T')[0].replace(/-/g,'');
+        return startDate;
+    }
+
+    function endDate() {
+        let endDate = new Date();
+        //Subtracts 1 day from the current date.
+        let days = 1;
+        endDate.setDate(endDate.getDate() - days);
+        endDate = endDate.toISOString().split('T')[0].replace(/-/g,'');
+        return endDate;
+    }
+
+    //these values are static for now; change when Ubisoft makes a change to them
+    var appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
+    var spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: '/v3/profiles/sessions',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + Buffer.from(account.email + ':' + account.password).toString('base64'),
+            'Ubi-AppId': appId,
+            'Ubi-RequestedPlatformType': account.platform,
+            'Connection': 'keep-alive',
         }
     }
-}();
-
-//SESSION CLASS
-var session = function() {
-    var config;
-    function initializeSession() {
-        this.appId  = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
-        this.spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
-        this.sessionId = null;
-        this.token = null;
-    }
-
-    function getSessionResponse(account) {
-        var options = {
-            host: 'public-ubiservices.ubi.com',
-            port: 443,
-            path: '/v3/profiles/sessions',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + Buffer.from(account.email + ':' + account.password).toString('base64'),
-                'Ubi-AppId': config.appId,
-                'Ubi-RequestedPlatformType': 'uplay',
-                'Connection': 'keep-alive',
-            }
-        }
-        return new Promise((resolve, reject) => {
-            try {
-                const req = https.request(options, res => {
-                    let data = '';
-                    res.on('error', e => {
-                        throw new Error(e);
-                    })
-    
-                    res.on('data', chunk => {
-                        data += chunk;
-                    })
-    
-                    res.on('end', () => {
-                        data = JSON.parse(data);
-                        resolve(data);
-                    })
-                })
-                req.end();
-            }
-            catch (e) {
-                reject(e);
-            }
-        })
-    }
-
-    return {
-        createSession: async function(accountObj) {
-            if (config === undefined) {
-                config = new initializeSession();
-                let data = await getSessionResponse(accountObj).catch(e => { console.log(e) });
-                config.sessionId = data.sessionId;
-                config.token = data.ticket;
-                return config;
-            }
-        },
-        debugSession: async function(accountObj) {
-            let consoleOutput = await getSessionResponse(accountObj);
-            console.log(consoleOutput);
-        }
-    }
-}();
-
-//PLAYER CLASS
-var players = function() {
-    var playersArray = [];
-    function initializePlayer(username) {
-        this.username = username;
-        this.id = null;
-        this.rank = null;
-        this.kills = null;
-        this.deaths = null;
-    }
-    
-    function getPlayerInfo(player, session) {
-        var options = {
-            host: 'public-ubiservices.ubi.com',
-            port: 443,
-            path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=uplay`,
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `ubi_v1 t=${session.token}`,
-                'Ubi-AppID': session.appId,
-                'Ubi-SessionID': session.sessionId,
-                'Connection': 'keep-alive',
-            }
-        }
-        return new Promise((resolve, reject) => {
-            try {
-                const req = https.request(options, res => {
-                    let data = '';
-                    res.on('error', e => {
-                        throw new Error(e);
-                    })
-    
-                    res.on('data', chunk => {
-                        data += chunk;
-                    })
-    
-                    res.on('end', () => {
-                        data = JSON.parse(data);
-                        player.id = data.profiles[0].profileId;
-                        resolve(data);
-                    })
-                })
-                req.end();
-            }
-            catch (e) {
-                reject(e);
-            }
-        })
-    }
-
-    function getPlayerRank(player, session) {
-        var options = {
-            host: 'public-ubiservices.ubi.com',
-            port: 443,
-            path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-1&region_id=ncsa&profile_ids=${player.id}`,
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `ubi_v1 t=${session.token}`,
-                'Expiration': null,
-                'Ubi-AppID': session.appId,
-                'Ubi-SessionID': session.sessionId,
-                'User-Agent': 'node.js',
-                'Connection': 'keep-alive',
-            }
-        }
-        return new Promise((resolve, reject) => {
-            try {
-                const req = https.request(options, res => {
-                    let data = '';
-                    res.on('error', e => {
-                        reject(e);
-                    })
-    
-                    res.on('data', chunk => {
-                        data += chunk;
-                    })
-    
-                    res.on('end', () => {
-                        data = JSON.parse(data);
-                        resolve(data);
-                    })
-                })
-                req.end();
-            }
-            catch (e) {
-                reject(e);
-            }
-        })
-    }
-
-    function getPlayerSummary(player, session) {
-        var options = {
-            ':authority': 'r6s-stats.ubisoft.com',
-            ':method': 'GET',
-            //I need to make the startDate & endDate dynamic
-            ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200810&endDate=20201208`,
-            ':scheme': 'https',
-            'authorization': `ubi_v1 t=${session.token}`,
-            'ubi-appid': session.appId,
-            'ubi-sessionid': session.sessionId,
-            'content-type': 'application/json',
-            'user-agent': 'node.js',
-            'expiration': genExpiration(),
-        }
-
-        const authority = `https://r6s-stats.ubisoft.com/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=20200724&endDate=20201121`;
-        return new Promise((resolve, reject) => {
-            try {
-                
-                const client = http2.connect(authority);
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
                 let data = '';
-                client.on('error', e => {
-                    reject(e);
+                res.on('error', e => {
+                    throw new Error(e);
                 })
-                
-                const req = client.request(options);
-                req.on('error', e => {
-                    reject(e);
-                })
-    
-                req.on('data', chunk => {
+
+                res.on('data', chunk => {
                     data += chunk;
                 })
-    
-                req.on('end', () => {
+
+                res.on('end', () => {
                     data = JSON.parse(data);
-                    client.close();
-                    //this is a lot of data at once so do as you will, I commented it out for simplicity
-                    //const { teamRoles } = data.platforms.PC.gameModes.ranked;
-                    //resolve(teamRoles);
+                    var session = {
+                        sessionId: data.sessionId,
+                        spaceId: spaceId,
+                        appId: appId,
+                        token: data.ticket,
+                        startDate: startDate(),
+                        endDate: endDate(),
+                    }
+                    resolve(session);
+                })
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
+
+
+//for troubleshooting session response
+function getSessionResponse(account) {
+    var appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: '/v3/profiles/sessions',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + Buffer.from(account.email + ':' + account.password).toString('base64'),
+            'Ubi-AppId': appId,
+            'Ubi-RequestedPlatformType': account.platform,
+            'Connection': 'keep-alive',
+        }
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
+                let data = '';
+                res.on('error', e => {
+                    throw new Error(e);
+                })
+
+                res.on('data', chunk => {
+                    data += chunk;
+                })
+
+                res.on('end', () => {
+                    data = JSON.parse(data);
                     resolve(data);
                 })
-                req.end();
-            }
-            catch (e) {
-                reject(e);
-            }
-        })
-    }
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
 
+//creates player object and adds to global players[] array
+function createPlayer(name, platform) {
+    var player = {
+        username: name,
+        platform: platform,
+        id: null,
+        rank: null,
+        kills: null,
+        deaths: null,
+    }
+    players.push(player);
+}
+
+//sets player id needed for requests
+function setPlayerId(player, session) {
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=${player.platform}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `ubi_v1 t=${session.token}`,
+            'Ubi-AppID': session.appId,
+            'Ubi-SessionID': session.sessionId,
+            'Connection': 'keep-alive',
+        }
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
+                let data = '';
+                res.on('error', e => {
+                    throw new Error(e);
+                })
+
+                res.on('data', chunk => {
+                    data += chunk;
+                })
+
+                res.on('end', () => {
+                    data = JSON.parse(data);
+                    player.id = data.profiles[0].profileId;
+                    resolve('Fufilled');
+                })
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
+
+//gets profile server response
+function getProfileResponse(player, session) {
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=${player.platform}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `ubi_v1 t=${session.token}`,
+            'Ubi-AppID': session.appId,
+            'Ubi-SessionID': session.sessionId,
+            'Connection': 'keep-alive',
+        }
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
+                let data = '';
+                res.on('error', e => {
+                    throw new Error(e);
+                })
+
+                res.on('data', chunk => {
+                    data += chunk;
+                })
+
+                res.on('end', () => {
+                    data = JSON.parse(data);
+                    resolve(data);
+                })
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
+
+//gets general stats of player(rank, kills, deaths, etc)
+function getStats(player, session) {
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-5&region_id=ncsa&profile_ids=${player.id}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `ubi_v1 t=${session.token}`,
+            'Ubi-AppID': session.appId,
+            'Ubi-SessionID': session.sessionId,
+            'User-Agent': 'node.js',
+            'Connection': 'keep-alive',
+        }
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
+                let data = '';
+                res.on('error', e => {
+                    reject(e);
+                })
+
+                res.on('data', chunk => {
+                    data += chunk;
+                })
+
+                res.on('end', () => {
+                    data = JSON.parse(data);
+                    resolve(data);
+                })
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
+
+//gets stats by season
+//look up season chart in docs
+function getStatsBySeason(player, session, season) {
+    var options = {
+        host: 'public-ubiservices.ubi.com',
+        port: 443,
+        path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/player_skill_records?board_ids=pvp_ranked&season_ids=-${season}&region_ids=ncsa&profile_ids=${player.id}`,
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `ubi_v1 t=${session.token}`,
+            'Ubi-AppID': session.appId,
+            'Ubi-SessionID': session.sessionId,
+            'User-Agent': 'node.js',
+            'Connection': 'keep-alive',
+        }
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const req = https.request(options, res => {
+                let data = '';
+                res.on('error', e => {
+                    reject(e);
+                })
+
+                res.on('data', chunk => {
+                    data += chunk;
+                })
+
+                res.on('end', () => {
+                    data = JSON.parse(data);
+                    let seasonSkillRecord = data.seasons_player_skill_records[0].regions_player_skill_records[0].boards_player_skill_records[0].players_skill_records;
+                    resolve(seasonSkillRecord);
+                })
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
+
+//gets stats by operator
+function getStatsByOperator(player, session) {
+    //generates and expiration for expiration header
     function genExpiration() {
-        //1 hour expiration for quicker calls
         let time = new Date();
+        //1 hour -- set to what you like. Longer time = less frequent player updates
         let cacheTime = 1;
         time.setHours(time.getHours() + cacheTime);
         let expiration = time.toISOString();
         return expiration;
     }
 
-    return {
-        createPlayer: function(username) {
-            newPlayer = new initializePlayer(username);
-            playersArray.push(newPlayer);
-            return newPlayer;
-        },
-        getPlayer: function(player) {
-            for(let i = 0; i < playersArray.length; i++) {
-                if(playersArray[i].username === player) {
-                    return playersArray[i];
-                }
-                else if (i === playersArray.length - 1 && playersArray[i].username != player) {
-                    return new Error('Player not found.');
-                }
-            }
-        },
-        getPlayerInfo: getPlayerInfo,
-        getPlayerRank: getPlayerRank,
-        getPlayerSummary: getPlayerSummary,
+    var options = {
+        ':authority': 'r6s-stats.ubisoft.com',
+        ':method': 'GET',
+        //I need to make the startDate & endDate dynamic
+        ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=${session.startDate}&endDate=${session.endDate}`,
+        ':scheme': 'https',
+        'authorization': `ubi_v1 t=${session.token}`,
+        'ubi-appid': session.appId,
+        'ubi-sessionid': session.sessionId,
+        'content-type': 'application/json',
+        'user-agent': 'node.js',
+        'expiration': genExpiration(),
     }
-}();
+
+    const authority = `https://r6s-stats.ubisoft.com/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=${session.startDate}&endDate=${session.endDate}`;
+    return new Promise((resolve, reject) => {
+        try {
+            
+            const client = http2.connect(authority);
+            let data = '';
+            client.on('error', e => {
+                reject(e);
+            })
+            
+            const req = client.request(options);
+            req.on('error', e => {
+                reject(e);
+            })
+
+            req.on('data', chunk => {
+                data += chunk;
+            })
+
+            req.on('end', () => {
+                data = JSON.parse(data);
+                client.close();
+                const { teamRoles } = data.platforms.PC.gameModes.ranked;
+                resolve(teamRoles);
+            })
+            req.end();
+        }
+        catch (e) {
+            reject(e);
+        }
+    })
+}
 
 //exports
-module.exports = account;
-module.exports = session;
-module.exports = players;
+module.exports = { createAccount, createSession, getSessionResponse, createPlayer, setPlayerId, getProfileResponse, getStats, getStatsBySeason, getStatsByOperator, players };
