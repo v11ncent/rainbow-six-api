@@ -14,7 +14,6 @@ function createAccount(email, password, platform) {
     }
 }
 
-
 //creates a session
 function createSession(account) {
     //startDate() and endDate() fill the params for the subsequent requests. By default, I made it pull statistics from 2 months.
@@ -68,9 +67,9 @@ function createSession(account) {
                 res.on('end', () => {
                     data = JSON.parse(data);
                     var session = {
-                        sessionId: data.sessionId,
-                        spaceId: spaceId,
                         appId: appId,
+                        spaceId: spaceId,
+                        sessionId: data.sessionId,
                         token: data.ticket,
                         startDate: startDate(),
                         endDate: endDate(),
@@ -85,7 +84,6 @@ function createSession(account) {
         }
     })
 }
-
 
 //for troubleshooting session response
 function getSessionResponse(account) {
@@ -139,6 +137,7 @@ function createPlayer(name, platform) {
         deaths: null,
     }
     players.push(player);
+    return player;
 }
 
 //sets player id needed for requests
@@ -227,7 +226,7 @@ function getStats(player, session) {
     var options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
-        path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-5&region_id=ncsa&profile_ids=${player.id}`,
+        path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-1&region_id=ncsa&profile_ids=${player.id}`,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -321,7 +320,6 @@ function getStatsByOperator(player, session) {
     var options = {
         ':authority': 'r6s-stats.ubisoft.com',
         ':method': 'GET',
-        //I need to make the startDate & endDate dynamic
         ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=${session.startDate}&endDate=${session.endDate}`,
         ':scheme': 'https',
         'authorization': `ubi_v1 t=${session.token}`,
