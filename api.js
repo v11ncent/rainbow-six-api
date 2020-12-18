@@ -3,7 +3,7 @@ const http2 = require('http2');
 const https = require('https');
 
 //players array that holds players
-var players = [];
+let players = [];
 
 //creates an account
 function createAccount(email, password, platform) {
@@ -37,9 +37,9 @@ function createSession(account) {
     }
 
     //these values are static for now; change when Ubisoft makes a change to them
-    var appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
-    var spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
-    var options = {
+    let appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
+    let spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
         path: '/v3/profiles/sessions',
@@ -66,7 +66,7 @@ function createSession(account) {
 
                 res.on('end', () => {
                     data = JSON.parse(data);
-                    var session = {
+                    let session = {
                         appId: appId,
                         spaceId: spaceId,
                         sessionId: data.sessionId,
@@ -87,8 +87,8 @@ function createSession(account) {
 
 //for troubleshooting session response
 function getSessionResponse(account) {
-    var appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
-    var options = {
+    let appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
         path: '/v3/profiles/sessions',
@@ -126,26 +126,13 @@ function getSessionResponse(account) {
     })
 }
 
-//creates player object and adds to global players[] array
-function createPlayer(name, platform) {
-    var player = {
-        username: name,
-        platform: platform,
-        id: null,
-        rank: null,
-        kills: null,
-        deaths: null,
-    }
-    players.push(player);
-    return player;
-}
 
 //sets player id needed for requests
-function setPlayerId(player, session) {
-    var options = {
+function createPlayer(name, platform, session) {
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
-        path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=${player.platform}`,
+        path: `/v3/profiles?namesOnPlatform=${name}&platformType=${platform}`,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -169,8 +156,18 @@ function setPlayerId(player, session) {
 
                 res.on('end', () => {
                     data = JSON.parse(data);
-                    player.id = data.profiles[0].profileId;
-                    resolve('Fufilled');
+                    let id = data.profiles[0].profileId;
+                    let player = {
+                        username: name,
+                        platform: platform,
+                        id: id,
+                        rank: null,
+                        kills: null,
+                        deaths: null,
+                    }
+                    //pushes to global players[] array
+                    players.push(player);
+                    resolve(player);
                 })
             })
             req.end();
@@ -183,7 +180,7 @@ function setPlayerId(player, session) {
 
 //gets profile server response
 function getProfileResponse(player, session) {
-    var options = {
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
         path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=${player.platform}`,
@@ -223,7 +220,7 @@ function getProfileResponse(player, session) {
 
 //gets general stats of player(rank, kills, deaths, etc)
 function getStats(player, session) {
-    var options = {
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
         path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/players?board_id=pvp_ranked&season_id=-1&region_id=ncsa&profile_ids=${player.id}`,
@@ -265,7 +262,7 @@ function getStats(player, session) {
 //gets stats by season
 //look up season chart in docs
 function getStatsBySeason(player, session, season) {
-    var options = {
+    let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
         path: `/v1/spaces/${session.spaceId}/sandboxes/OSBOR_PC_LNCH_A/r6karma/player_skill_records?board_ids=pvp_ranked&season_ids=-${season}&region_ids=ncsa&profile_ids=${player.id}`,
@@ -317,7 +314,7 @@ function getStatsByOperator(player, session) {
         return expiration;
     }
 
-    var options = {
+    let options = {
         ':authority': 'r6s-stats.ubisoft.com',
         ':method': 'GET',
         ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=${session.startDate}&endDate=${session.endDate}`,
@@ -364,4 +361,4 @@ function getStatsByOperator(player, session) {
 }
 
 //exports
-module.exports = { createAccount, createSession, getSessionResponse, createPlayer, setPlayerId, getProfileResponse, getStats, getStatsBySeason, getStatsByOperator, players };
+module.exports = { createAccount, createSession, getSessionResponse, createPlayer, getProfileResponse, getStats, getStatsBySeason, getStatsByOperator, players };
