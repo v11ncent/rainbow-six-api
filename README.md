@@ -1,8 +1,10 @@
 
 # r6-api
 Rainbow Six api for getting player statistics.
-https://www.npmjs.com/package/@vince144/r6-api
 https://github.com/vince1444/r6-api/wiki
+
+# npm
+https://www.npmjs.com/package/@vince144/r6-api
 
 # Important
 Ubisoft's website is structured in a way where you must be logged in before you can get player statistics. Therefore, you
