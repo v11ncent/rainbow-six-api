@@ -1,6 +1,7 @@
 
 # r6-api
 Rainbow Six api for getting player statistics.
+https://www.npmjs.com/package/@vince144/r6-api
 https://github.com/vince1444/r6-api/wiki
 
 # Important
