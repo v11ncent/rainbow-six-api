@@ -127,12 +127,12 @@ function getSessionResponse(account) {
 }
 
 
-//sets player id needed for requests
-function createPlayer(name, platform, session) {
+//creates player and adds to global player[] array
+function createPlayer(username, platform, session) {
     let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
-        path: `/v3/profiles?namesOnPlatform=${name}&platformType=${platform}`,
+        path: `/v3/profiles?namesOnPlatform=${username}&platformType=${platform}`,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ function createPlayer(name, platform, session) {
                     data = JSON.parse(data);
                     let id = data.profiles[0].profileId;
                     let player = {
-                        username: name,
+                        username: username,
                         platform: platform,
                         id: id,
                         rank: null,
@@ -179,11 +179,11 @@ function createPlayer(name, platform, session) {
 }
 
 //gets profile server response
-function getProfileResponse(player, session) {
+function getProfileResponse(username, platform, session) {
     let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
-        path: `/v3/profiles?namesOnPlatform=${player.username}&platformType=${player.platform}`,
+        path: `/v3/profiles?namesOnPlatform=${username}&platformType=${platform}`,
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -303,8 +303,10 @@ function getStatsBySeason(player, session, season) {
 }
 
 //gets stats by operator
-function getStatsByOperator(player, session) {
-    //generates and expiration for expiration header
+//team param is optional
+function getStatsByOperator(player, session, team) {
+    team = (team !== undefined) ? team : 'attacker,defender';
+    //generates an expiration for expiration header
     function genExpiration() {
         let time = new Date();
         //1 hour -- set to what you like. Longer time = less frequent player updates
@@ -317,7 +319,7 @@ function getStatsByOperator(player, session) {
     let options = {
         ':authority': 'r6s-stats.ubisoft.com',
         ':method': 'GET',
-        ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=attacker,defender&startDate=${session.startDate}&endDate=${session.endDate}`,
+        ':path': `/v1/current/operators/${player.id}?gameMode=all,ranked,casual,unranked&platform=PC&teamRole=${team}&startDate=${session.startDate}&endDate=${session.endDate}`,
         ':scheme': 'https',
         'authorization': `ubi_v1 t=${session.token}`,
         'ubi-appid': session.appId,
