@@ -6,6 +6,9 @@ let players = [];
 
 // creates an account
 function createAccount(email, password, platform) {
+    if (account === undefined || password === undefined || platform === undefined) {
+        console.error('Missing arguments. Requires: createAccount(email, passowrd, platform).');
+    }
     return {
         email: email,
         password: password,
