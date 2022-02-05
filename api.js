@@ -1,13 +1,13 @@
-const http2 = require('http2');
+const http = require('http');
 const https = require('https');
 
-// players array that holds players
+//players array that holds players
 let players = [];
 
-// creates an account
+//creates an account
 function createAccount(email, password, platform) {
     if (email === undefined || password === undefined || platform === undefined) {
-        console.error('Missing arguments. Requires: createAccount(email, passowrd, platform).');
+        console.error('Missing arguments. Requires: createAccount(email, password, platform).');
     }
     return {
         email: email,
@@ -16,17 +16,17 @@ function createAccount(email, password, platform) {
     }
 }
 
-// creates a session
+//creates a session
 function createSession(account) {
     if (account === undefined) {
         console.error('Missing arguments. Requires: createSession(account).');
     }
-    // startDate() and endDate() fill the params for the subsequent requests. By default, I made it pull statistics from 2 months.
-    // If you want to change the stat range, just change the months/days values in these functions.
+    //startDate() and endDate() fill the params for the subsequent requests. By default, I made it pull statistics from 3 months.
+    //If you want to change the stat range, just change the months/days values in these functions.
     function startDate() {
         let startDate = new Date();
-        // Subtracts 2 months from current date.
-        let months = 2;
+        //Subtracts 2 months from current date.
+        let months = 3;
         startDate.setMonth(startDate.getMonth() - months);
         startDate = startDate.toISOString().split('T')[0].replace(/-/g,'');
         return startDate;
@@ -34,14 +34,14 @@ function createSession(account) {
 
     function endDate() {
         let endDate = new Date();
-        // Subtracts 1 day from the current date.
+        //Subtracts 1 day from the current date.
         let days = 1;
         endDate.setDate(endDate.getDate() - days);
         endDate = endDate.toISOString().split('T')[0].replace(/-/g,'');
         return endDate;
     }
 
-    // these values are static for now; change when Ubisoft makes a change to them
+    //these values are static for now; change when Ubisoft makes a change to them
     let appId = '3587dcbb-7f81-457c-9781-0e3f29f6f56a';
     let spaceId = '5172a557-50b5-4665-b7db-e3f2e8c5041d';
     let options = {
@@ -90,7 +90,7 @@ function createSession(account) {
     });
 }
 
-// for troubleshooting session response
+//for troubleshooting session response
 function getSessionResponse(account) {
     if (account === undefined) {
         console.error('Missing arguments. Requires: getSessionResponse(account).');
@@ -135,7 +135,7 @@ function getSessionResponse(account) {
     });
 }
 
-// creates player and adds to global player[] array
+//creates player and adds to global player[] array
 function createPlayer(username, platform, session) {
     if (username === undefined || platform === undefined || session === undefined) {
         console.error('Missing arguments. Requires: createPlayer(username, platform, session).');
@@ -194,7 +194,7 @@ function createPlayer(username, platform, session) {
     });
 }
 
-// Platforms: PlayStation = psn, Xbox = xbl, PC = uplay
+//gets profile server response
 function getProfileResponse(username, platform, session) {
     if (username === undefined || platform === undefined || session === undefined) {
         console.error('Missing arguments. Requires: getProfileResponse(username, platform, session).');
@@ -203,7 +203,7 @@ function getProfileResponse(username, platform, session) {
     let options = {
         host: 'public-ubiservices.ubi.com',
         port: 443,
-        path: `/v3/profiles?namesOnPlatform=${username}&platformType=${platform}`,
+        path: encodeURI(`/v3/profiles?namesOnPlatform=${username}&platformType=${platform}`),
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ function getProfileResponse(username, platform, session) {
     });
 }
 
-// gets general stats of player (rank, kills, deaths, etc)
+//gets general stats of player(rank, kills, deaths, etc)
 function getStats(player, session) {
     if (player === undefined || session === undefined) {
         console.error('Missing arguments. Requires: getStats(player, session).');
@@ -284,7 +284,7 @@ function getStats(player, session) {
     });
 }
 
-// look up season chart in docs
+//look up season chart in docs
 function getStatsBySeason(player, session, season) {
     if (player === undefined || session === undefined || season === undefined) {
         console.error('Missing arguments. Requires: getStatsBySeason(player, session, season).');
@@ -330,14 +330,14 @@ function getStatsBySeason(player, session, season) {
     });
 }
 
-// team param is optional
+//team param is optional
 function getStatsByOperator(player, session, team) {
     if (player === undefined || session === undefined) {
         console.error('Missing arguments. Requires: getStatsByOperator(player, session, [OPTIONAL]team).');
         return;
     }
     team = (team !== undefined) ? team : 'attacker,defender';
-    // generates an expiration for expiration header
+    //generates an expiration for expiration header
     function genExpiration() {
         let time = new Date();
         //1 hour -- set to what you like. Longer time = less frequent player updates
