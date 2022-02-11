@@ -1,7 +1,9 @@
 
 # Rainbow Six API
 Rainbow Six api for getting player statistics.
-You need a valid Ubisoft username & password as Ubisoft requires requests to be authenticated.
+You need a valid Ubisoft username & password as Ubisoft requires requests to be authenticated. 
+<br>
+Wiki:
 https://github.com/vince1444/r6-api/wiki
 
 ## Important
